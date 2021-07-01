@@ -275,7 +275,7 @@ class Z_Translator(object):
             # here
             else:
                 src_features = self.model.f1(1, top_vec, top_vec, 1-mask_src)
-                z_src_features = self.model.f2(1, z_top_vec, z_top_vec, 1-mask_z)  
+                z_src_features = self.model.f2(1, z_top_vec, z_top_vec, 1-mask_z)
                 dec_states = self.model.decoder.init_decoder_state(src, src_features, z, z_src_features, with_cache=True)
         # here
 
@@ -389,6 +389,8 @@ class Z_Translator(object):
                     topk_beam_index
                     + beam_offset[:topk_beam_index.size(0)].unsqueeze(1))
             select_indices = batch_index.view(-1)
+            # For some reason select_indices is a tensor of floats, which causes `alive_seq.index_select` to break. We excplicitly cast it to a tensor of Longs:
+            select_indices = select_indices.type(torch.LongTensor).to(device=device)
 
             # Append last prediction.
             alive_seq = torch.cat(
@@ -435,6 +437,7 @@ class Z_Translator(object):
                     .view(-1, alive_seq.size(-1))
             # Reorder states.
             select_indices = batch_index.view(-1)
+            select_indices = select_indices.type(torch.LongTensor).to(device=device)
             src_features = src_features.index_select(0, select_indices)
             z_src_features = z_src_features.index_select(0, select_indices)
             dec_states.map_batch_fn(

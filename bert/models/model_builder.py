@@ -225,8 +225,8 @@ class Z_AbsSummarizer(nn.Module):
         self.generator = get_generator(self.vocab_size, self.args.dec_hidden_size, device)
         self.generator[0].weight = self.decoder.embeddings.weight
 
-        self.f1 = TransformerEncoderLayer(self.bert.model.config.hidden_size, args.ext_heads, args.ext_ff_size, args.ext_dropout) 
-        self.f2 = TransformerEncoderLayer(self.bert.model.config.hidden_size, args.ext_heads, args.ext_ff_size, args.ext_dropout) 
+        self.f1 = TransformerEncoderLayer(self.bert.model.config.hidden_size, args.ext_heads, args.ext_ff_size, args.ext_dropout)
+        self.f2 = TransformerEncoderLayer(self.bert.model.config.hidden_size, args.ext_heads, args.ext_ff_size, args.ext_dropout)
 
         if checkpoint is not None:
             self.load_state_dict(checkpoint['model'], strict=True)
@@ -256,9 +256,9 @@ class Z_AbsSummarizer(nn.Module):
 
     def forward(self, src, tgt, segs, clss, mask_src, mask_tgt, mask_cls, z, mask_z, z_segs):
         top_vec = self.bert(src, segs, mask_src)
-        top_vec = self.f1(1, top_vec, top_vec, 1-mask_src)
+        top_vec = self.f1(1, top_vec, top_vec, ~mask_src)
         z_top_vec = self.bert(z, z_segs, mask_z)
-        z_top_vec = self.f2(1, z_top_vec, z_top_vec, 1-mask_z)
+        z_top_vec = self.f2(1, z_top_vec, z_top_vec, ~mask_z)
         dec_state = self.decoder.init_decoder_state(src, top_vec, z, z_top_vec)
         decoder_outputs, state, copy_prob= self.decoder(tgt[:, :-1], top_vec, z_top_vec, dec_state)
         return decoder_outputs, None, [copy_prob[0], copy_prob[1], copy_prob[2], z_top_vec[:, 0, :]]
