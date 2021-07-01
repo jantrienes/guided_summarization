@@ -274,8 +274,8 @@ class Z_Translator(object):
 
             # here
             else:
-                src_features = self.model.f1(1, top_vec, top_vec, 1-mask_src)
-                z_src_features = self.model.f2(1, z_top_vec, z_top_vec, 1-mask_z)
+                src_features = self.model.f1(1, top_vec, top_vec, ~mask_src)
+                z_src_features = self.model.f2(1, z_top_vec, z_top_vec, ~mask_z)
                 dec_states = self.model.decoder.init_decoder_state(src, src_features, z, z_src_features, with_cache=True)
         # here
 
