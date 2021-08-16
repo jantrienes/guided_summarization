@@ -287,7 +287,6 @@ class Trainer(object):
 
         if (not cal_lead and not cal_oracle):
             self.model.eval()
-        stats = Statistics()
 
         can_path = '%s_step%d.candidate'%(self.args.result_path,step)
         gold_path = '%s_step%d.gold' % (self.args.result_path, step)
@@ -297,8 +296,14 @@ class Trainer(object):
                     for batch in test_iter:
                         gold = []
                         pred = []
+                        labels = batch.src_sent_labels
                         if (cal_lead):
                             selected_ids = [list(range(batch.clss.size(1)))] * batch.batch_size
+                        elif (cal_oracle):
+                            selected_ids = [
+                                [j for j in range(batch.clss.size(1)) if labels[i][j] == 1]
+                                for i in range(batch.batch_size)
+                            ]
                         for i, idx in enumerate(selected_ids):
                             _pred = []
                             if(len(batch.src_str[i])==0):
@@ -326,9 +331,6 @@ class Trainer(object):
         if(step!=-1 and self.args.report_rouge):
             rouges = test_rouge(self.args.temp_dir, can_path, gold_path)
             logger.info('Rouges at step %d \n%s' % (step, rouge_results_to_str(rouges)))
-        self._report_step(0, step, valid_stats=stats)
-
-        return stats
 
     def _save(self, step):
         real_model = self.model

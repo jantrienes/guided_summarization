@@ -9,6 +9,7 @@ import re
 import subprocess
 from collections import Counter
 from os.path import join as pjoin
+from pathlib import Path
 
 import torch
 from multiprocess import Pool
@@ -159,6 +160,28 @@ def cal_rouge(evaluated_ngrams, reference_ngrams):
 
 
 def greedy_selection(doc_sent_list, abstract_sent_list, summary_size):
+    """Greedily select sentences in source document that maximize ROUGE score with respect to the target summary. This routine creates ground truth sentence labels for extractive summarization.
+
+    The summary is build up iteratively up to a length of `summary_size`. At each iteration, a sentence is only added if the additon improves the ROUGE score with respect to the target summary.
+
+    References:
+    - Nallapati, R. et al. (2017). SummaRuNNer: A Recurrent Neural Network Based Sequence Model for Extractive Summarization of Documents. AAAI-17.
+    - Liu, Y., & Lapata, M. (2019). Text Summarization with Pretrained Encoders. EMNLP-IJCNLP 2019.
+
+    Parameters
+    ----------
+    doc_sent_list : List[List[str]]
+        Tokenized sentences in source document.
+    abstract_sent_list : List[List[str]]
+        Tokenized sentences in target summary.
+    summary_size : int
+        Maximum number of sentences to select.
+
+    Returns
+    -------
+    List[int]
+        Indexes of the selected sentences in `doc_sent_list`.
+    """
     def _rouge_clean(s):
         return re.sub(r'[^a-zA-Z0-9 ]', '', s)
 
@@ -207,12 +230,12 @@ def hashhex(s):
 class BertData():
     def __init__(self, args):
         self.args = args
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        self.tokenizer = BertTokenizer.from_pretrained(args.pretrained_model, do_lower_case=True)
 
         self.sep_token = '[SEP]'
         self.cls_token = '[CLS]'
         self.pad_token = '[PAD]'
-        self.tgt_bos = '[unused0]'
+        self.tgt_bos = '[unused9]'
         self.tgt_eos = '[unused1]'
         self.tgt_sent_split = '[unused2]'
         self.sep_vid = self.tokenizer.vocab[self.sep_token]
@@ -258,7 +281,7 @@ class BertData():
         cls_ids = [i for i, t in enumerate(src_subtoken_idxs) if t == self.cls_vid]
         sent_labels = sent_labels[:len(cls_ids)]
 
-        tgt_subtokens_str = '[unused0] ' + ' [unused2] '.join(
+        tgt_subtokens_str = '[unused9] ' + ' [unused2] '.join(
             [' '.join(self.tokenizer.tokenize(' '.join(tt), use_bert_basic_tokenizer=use_bert_basic_tokenizer)) for tt in tgt]) + ' [unused1]'
         tgt_subtoken = tgt_subtokens_str.split()[:self.args.max_tgt_ntokens]
         if ((not is_test) and len(tgt_subtoken) < self.args.min_tgt_ntokens):
@@ -273,6 +296,7 @@ class BertData():
 
 
 def format_to_bert(args):
+    Path(args.save_path).mkdir(exist_ok=True, parents=True)
     if (args.dataset != ''):
         datasets = [args.dataset]
     else:
