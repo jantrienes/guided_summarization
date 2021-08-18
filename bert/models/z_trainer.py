@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from tensorboardX import SummaryWriter
 
+import time
 import distributed
 from models.reporter import ReportMgr, Statistics
 from others.logging import logger
@@ -159,12 +160,12 @@ class Trainer(object):
                             true_batchs, normalization, total_stats,
                             report_stats)
 
-                        self._report_gradients(step)
-
                         report_stats = self._maybe_report_training(
                             step, train_steps,
                             self.optims[0].learning_rate,
                             report_stats)
+
+                        self._report_gradients(step)
 
                         true_batchs = []
                         accum = 0
@@ -406,9 +407,12 @@ class Trainer(object):
 
     def _report_gradients(self, step):
         if step % self.report_manager.report_every == 0:
+            t_start = time.time()
             for name, param in self.model.named_parameters():
                 if param.requires_grad and param.grad is not None:
                     self.writer.add_histogram(name, param.grad, step)
+            t_end = time.time()
+            print(f'Logging gradients took {t_end - t_start:.2f} seconds')
 
     def _maybe_save(self, step):
         """
