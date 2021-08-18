@@ -405,7 +405,7 @@ class Trainer(object):
                 valid_stats=valid_stats)
 
     def _report_gradients(self, step):
-        if step % self.report_manager.report_every == 0:
+        if step % self.args.report_gradients_every == 0:
             for name, param in self.model.named_parameters():
                 if param.requires_grad and param.grad is not None:
                     self.writer.add_histogram(name, param.grad, step)
