@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-copy", type=str2bool, nargs='?', const=True, default=False)
 
+    parser.add_argument("-decay_method", default='noam', type=str)
     parser.add_argument("-param_init", default=0, type=float)
     parser.add_argument("-param_init_glorot", type=str2bool, nargs='?',const=True,default=True)
     parser.add_argument("-optim", default='adam', type=str)
@@ -90,6 +91,10 @@ if __name__ == '__main__':
     parser.add_argument("-warmup_steps_bert", default=8000, type=int)
     parser.add_argument("-warmup_steps_dec", default=8000, type=int)
     parser.add_argument("-max_grad_norm", default=0, type=float)
+    # Only when `decay_method` is not `noam`.
+    parser.add_argument("-lr_decay", default=1, type=float)
+    parser.add_argument("-start_decay_steps", default=None, type=float)
+    parser.add_argument("-decay_steps", default=None, type=float)
 
     parser.add_argument("-save_checkpoint_steps", default=5, type=int)
     parser.add_argument("-accum_count", default=1, type=int)
