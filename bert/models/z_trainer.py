@@ -97,6 +97,7 @@ class Trainer(object):
         self.n_gpu = n_gpu
         self.gpu_rank = gpu_rank
         self.report_manager = report_manager
+        self.writer = report_manager.tensorboard_writer
 
         self.loss = loss
 
@@ -157,6 +158,8 @@ class Trainer(object):
                         self._gradient_accumulation(
                             true_batchs, normalization, total_stats,
                             report_stats)
+
+                        self._report_gradients(step)
 
                         report_stats = self._maybe_report_training(
                             step, train_steps,
@@ -400,6 +403,12 @@ class Trainer(object):
             return self.report_manager.report_step(
                 learning_rate, step, train_stats=train_stats,
                 valid_stats=valid_stats)
+
+    def _report_gradients(self, step):
+        if step % self.report_manager.report_every == 0:
+            for name, param in self.model.named_parameters():
+                if param.requires_grad:
+                    self.writer.add_histogram(name, param.grad, step)
 
     def _maybe_save(self, step):
         """
