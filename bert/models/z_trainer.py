@@ -401,7 +401,7 @@ class Trainer(object):
                 valid_stats=valid_stats)
 
     def _report_gradients(self, step):
-        if self.writer is None:
+        if self.writer is None or self.gpu_rank != 0:
             return
         if step % self.args.report_gradients_every == 0:
             for name, param in self.model.named_parameters():
