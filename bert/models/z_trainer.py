@@ -15,7 +15,7 @@ def _tally_parameters(model):
     return n_params
 
 
-def build_trainer(args, device_id, model, optims,loss):
+def build_trainer(args, device_id, model, optims, loss):
     """
     Simplify `Trainer` creation based on user `opt`s*
     Args:
@@ -42,16 +42,7 @@ def build_trainer(args, device_id, model, optims,loss):
 
     print('gpu_rank %d' % gpu_rank)
 
-    report_manager = None
-    if not args.debug:
-      tensorboard_log_dir = args.model_path
-
-      writer = SummaryWriter(tensorboard_log_dir, comment="Unmt")
-
-      report_manager = ReportMgr(args.report_every, start_time=-1, tensorboard_writer=writer)
-
-
-    trainer = Trainer(args, model, optims, loss, grad_accum_count, n_gpu, gpu_rank, report_manager)
+    trainer = Trainer(args, model, optims, loss, grad_accum_count, n_gpu, gpu_rank)
 
     if (model):
         n_params = _tally_parameters(model)
@@ -78,16 +69,13 @@ class Trainer(object):
             data_type(string): type of the source input: [text|img|audio]
             norm_method(string): normalization methods: [sents|tokens]
             grad_accum_count(int): accumulate gradients this many times.
-            report_manager(:obj:`onmt.utils.ReportMgrBase`):
-                the object that creates reports, or None
             model_saver(:obj:`onmt.models.ModelSaverBase`): the saver is
                 used to save a checkpoint.
                 Thus nothing will be saved if this parameter is None
     """
 
     def __init__(self,  args, model,  optims, loss,
-                  grad_accum_count=1, n_gpu=1, gpu_rank=1,
-                  report_manager=None):
+                  grad_accum_count=1, n_gpu=1, gpu_rank=1):
         # Basic attributes.
         self.args = args
         self.save_checkpoint_steps = args.save_checkpoint_steps
@@ -96,8 +84,16 @@ class Trainer(object):
         self.grad_accum_count = grad_accum_count
         self.n_gpu = n_gpu
         self.gpu_rank = gpu_rank
-        self.report_manager = report_manager
-        self.writer = report_manager.tensorboard_writer
+
+        self.report_manager = None
+        self.writer = None
+        if not args.debug:
+            self.writer = SummaryWriter(args.model_path, comment="Unmt")
+            self.report_manager = ReportMgr(
+                args.report_every,
+                start_time=-1,
+                tensorboard_writer=self.writer
+            )
 
         self.loss = loss
 
@@ -405,6 +401,8 @@ class Trainer(object):
                 valid_stats=valid_stats)
 
     def _report_gradients(self, step):
+        if self.writer is None:
+            return
         if step % self.args.report_gradients_every == 0:
             for name, param in self.model.named_parameters():
                 if param.requires_grad and param.grad is not None:
@@ -416,3 +414,7 @@ class Trainer(object):
         """
         if self.model_saver is not None:
             self.model_saver.maybe_save(step)
+
+    def close_writer(self):
+        if self.writer is not None:
+            self.writer.close()
