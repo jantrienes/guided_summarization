@@ -384,7 +384,7 @@ class Trainer(object):
         Simple function to report training stats (if report_manager is set)
         see `onmt.utils.ReportManagerBase.report_training` for doc
         """
-        if self.report_manager is not None:
+        if self.report_manager is not None and self.gpu_rank == 0:
             return self.report_manager.report_training(
                 step, num_steps, learning_rate, report_stats,
                 multigpu=self.n_gpu > 1)
@@ -395,7 +395,7 @@ class Trainer(object):
         Simple function to report stats (if report_manager is set)
         see `onmt.utils.ReportManagerBase.report_step` for doc
         """
-        if self.report_manager is not None:
+        if self.report_manager is not None and self.gpu_rank == 0:
             return self.report_manager.report_step(
                 learning_rate, step, train_stats=train_stats,
                 valid_stats=valid_stats)
