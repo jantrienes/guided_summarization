@@ -92,7 +92,8 @@ class Trainer(object):
             self.report_manager = ReportMgr(
                 args.report_every,
                 start_time=-1,
-                tensorboard_writer=self.writer
+                tensorboard_writer=self.writer,
+                gpu_rank=self.gpu_rank
             )
 
         self.loss = loss
