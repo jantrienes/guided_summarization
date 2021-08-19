@@ -408,6 +408,14 @@ class Trainer(object):
                 if param.requires_grad and param.grad is not None:
                     self.writer.add_histogram(name, param.grad, step)
 
+        if step % self.args.report_every == 0:
+            for name, param in self.model.named_parameters():
+                if param.requires_grad and param.grad is not None:
+                    norm = torch.linalg.norm(param.grad)
+                    self.writer.add_scalar('grad_norm/' + name, norm, step)
+                    self.writer.add_scalar('grad_min/' + name, torch.min(param.grad), step)
+                    self.writer.add_scalar('grad_max/' + name, torch.max(param.grad), step)
+
     def _maybe_save(self, step):
         """
         Save the model if a model saver is set
