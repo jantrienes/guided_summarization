@@ -406,7 +406,8 @@ class Trainer(object):
         if step % self.args.report_gradients_every == 0:
             for name, param in self.model.named_parameters():
                 if param.requires_grad and param.grad is not None:
-                    self.writer.add_histogram(name, param.grad, step)
+                    self.writer.add_histogram('weight/' + name, param, step)
+                    self.writer.add_histogram('grad/' + name, param.grad, step)
 
         if step % self.args.report_every == 0:
             for name, param in self.model.named_parameters():
