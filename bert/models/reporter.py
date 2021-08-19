@@ -276,7 +276,6 @@ class Statistics(object):
         """ display statistics to tensorboard """
         from torch.distributed import get_rank
         gpu_rank = get_rank()
-        print(f'gpu_rank in log : {gpu_rank}')
         if gpu_rank != 0:
             return
         t = self.elapsed_time()
