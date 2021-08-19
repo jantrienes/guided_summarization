@@ -274,6 +274,11 @@ class Statistics(object):
 
     def log_tensorboard(self, prefix, writer, learning_rate, step):
         """ display statistics to tensorboard """
+        from torch.distributed import get_rank
+        gpu_rank = get_rank()
+        print(f'gpu_rank in log : {gpu_rank}')
+        if gpu_rank != 0:
+            return
         t = self.elapsed_time()
         writer.add_scalar(prefix + "/xent", self.xent(), step)
         writer.add_scalar(prefix + "/ppl", self.ppl(), step)
