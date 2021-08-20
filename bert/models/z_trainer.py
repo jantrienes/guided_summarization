@@ -415,8 +415,6 @@ class Trainer(object):
                 if param.requires_grad and param.grad is not None:
                     norm = torch.linalg.norm(param.grad)
                     self.writer.add_scalar('grad_norm/' + name, norm, step)
-                    self.writer.add_scalar('grad_min/' + name, torch.min(param.grad), step)
-                    self.writer.add_scalar('grad_max/' + name, torch.max(param.grad), step)
 
     def _maybe_save(self, step):
         """
