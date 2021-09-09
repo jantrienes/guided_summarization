@@ -26,8 +26,9 @@ class Batch(object):
             pre_segs = [x[2] for x in data]
             pre_clss = [x[3] for x in data]
             pre_src_sent_labels = [x[4] for x in data]
-            pre_zs = [x[5] for x in data]
-            pre_z_segs = [x[6] for x in data]
+            id_ = [x[5] for x in data]
+            pre_zs = [x[6] for x in data]
+            pre_z_segs = [x[7] for x in data]
 
             src = torch.tensor(self._pad(pre_src, 0))
             tgt = torch.tensor(self._pad(pre_tgt, 0))
@@ -59,6 +60,7 @@ class Batch(object):
             setattr(self, 'mask_z', mask_z.to(device))
             setattr(self, 'z_segs', z_segs.to(device))
 
+            setattr(self, 'id_', id_)
             if (is_test):
                 src_str = [x[-2] for x in data]
                 setattr(self, 'src_str', src_str)
@@ -202,12 +204,8 @@ class DataIterator(object):
         xs = self.dataset
         return xs
 
-
-
-
-
-
     def preprocess(self, ex, is_test):
+        id_ = ex['id']
         src = ex['src']
         tgt = ex['tgt']
         eos_id = [tgt[-1]]
@@ -243,12 +241,10 @@ class DataIterator(object):
         clss = clss[:max_sent_id]
         # src_txt = src_txt[:max_sent_id]
 
-
-
         if(is_test):
-            return src, tgt, segs, clss, src_sent_labels, z, z_segs, src_txt, tgt_txt
+            return src, tgt, segs, clss, src_sent_labels, id_, z, z_segs, src_txt, tgt_txt
         else:
-            return src, tgt, segs, clss, src_sent_labels, z, z_segs
+            return src, tgt, segs, clss, src_sent_labels, id_, z, z_segs
 
     def batch_buffer(self, data, batch_size):
         minibatch, size_so_far = [], 0
@@ -309,115 +305,6 @@ class DataIterator(object):
                 random.shuffle(p_batch)
             for b in p_batch:
                 if(len(b)==0):
-                    continue
-                yield b
-
-    def __iter__(self):
-        while True:
-            self.batches = self.create_batches()
-            for idx, minibatch in enumerate(self.batches):
-                # fast-forward if loaded from state
-                if self._iterations_this_epoch > idx:
-                    continue
-                self.iterations += 1
-                self._iterations_this_epoch += 1
-                batch = Batch(minibatch, self.device, self.is_test)
-
-                yield batch
-            return
-
-
-class TextDataloader(object):
-    def __init__(self, args, datasets, batch_size,
-                 device, shuffle, is_test):
-        self.args = args
-        self.batch_size = batch_size
-        self.device = device
-
-    def data(self):
-        if self.shuffle:
-            random.shuffle(self.dataset)
-        xs = self.dataset
-        return xs
-
-    def preprocess(self, ex, is_test):
-        src = ex['src']
-        tgt = ex['tgt']
-        eos_id = [tgt[-1]]
-        tgt = tgt[:-1][:self.args.max_tgt_len - 1] + eos_id
-        src_sent_labels = ex['src_sent_labels']
-        segs = ex['segs']
-        if (not self.args.use_interval):
-            segs = [0] * len(segs)
-        clss = ex['clss']
-        src_txt = ex['src_txt']
-        tgt_txt = ex['tgt_txt']
-
-        if 'z' in ex:
-            z = ex['z']
-            z_segs = [0] * len(z)
-            end_id = [z[-1]]
-            z = z[:-1][:MAX_Z_LENGTH-1]+end_id
-            z_segs = z_segs[:MAX_Z_LENGTH]
-        else:
-            1/0
-
-        end_id = [src[-1]]
-        src = src[:-1][:self.args.max_pos - 1] + end_id
-        segs = segs[:self.args.max_pos]
-        max_sent_id = bisect.bisect_left(clss, self.args.max_pos)
-        src_sent_labels = src_sent_labels[:max_sent_id]
-        clss = clss[:max_sent_id]
-        # src_txt = src_txt[:max_sent_id]
-
-        if (is_test):
-            return src, tgt, segs, clss, src_sent_labels, z, z_segs, src_txt, tgt_txt
-        else:
-            return src, tgt, segs, clss, src_sent_labels, z, z_segs
-
-    def batch_buffer(self, data, batch_size):
-        minibatch, size_so_far = [], 0
-        for ex in data:
-            if (len(ex['src']) == 0):
-                continue
-            ex = self.preprocess(ex, self.is_test)
-            if (ex is None):
-                continue
-            minibatch.append(ex)
-            size_so_far = simple_batch_size_fn(ex, len(minibatch))
-            if size_so_far == batch_size:
-                yield minibatch
-                minibatch, size_so_far = [], 0
-            elif size_so_far > batch_size:
-                yield minibatch[:-1]
-                minibatch, size_so_far = minibatch[-1:], simple_batch_size_fn(ex, 1)
-        if minibatch:
-            yield minibatch
-
-    def create_batches(self):
-        """ Create batches """
-        data = self.data()
-        for buffer in self.batch_buffer(data, self.batch_size * 300):
-            if (self.args.task == 'abs'):
-                if self.shuffle:
-                    p_batch = sorted(buffer, key=lambda x: len(x[2]))
-                    p_batch = sorted(p_batch, key=lambda x: len(x[1]))
-                else:
-                    p_batch = bufffer
-            else:
-                if self.shuffle:
-                    p_batch = sorted(buffer, key=lambda x: len(x[2]))
-                    p_batch = batch(p_batch, self.batch_size)
-                else:
-                    p_batch = batch(p_batch, self.batch_size)
-
-            p_batch = batch(p_batch, self.batch_size)
-
-            p_batch = list(p_batch)
-            if (self.shuffle):
-                random.shuffle(p_batch)
-            for b in p_batch:
-                if (len(b) == 0):
                     continue
                 yield b
 
